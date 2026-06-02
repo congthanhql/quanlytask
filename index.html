@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>CT-EDU Notes & Tasks</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Segoe UI',sans-serif;
+}
+
+body{
+background:#f4f6fb;
+padding:20px;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+}
+
+.header{
+background:linear-gradient(135deg,#2563eb,#1e40af);
+color:#fff;
+padding:25px;
+border-radius:16px;
+text-align:center;
+margin-bottom:20px;
+box-shadow:0 10px 20px rgba(0,0,0,.15);
+}
+
+.header h1{
+margin-bottom:8px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+}
+
+.card{
+background:#fff;
+padding:20px;
+border-radius:16px;
+box-shadow:0 5px 15px rgba(0,0,0,.08);
+}
+
+.card h2{
+color:#2563eb;
+margin-bottom:15px;
+}
+
+textarea,
+input{
+width:100%;
+padding:12px;
+border:1px solid #dbe2ef;
+border-radius:10px;
+outline:none;
+margin-bottom:10px;
+font-size:15px;
+}
+
+textarea:focus,
+input:focus{
+border-color:#2563eb;
+}
+
+button{
+background:#2563eb;
+color:#fff;
+border:none;
+padding:12px 18px;
+border-radius:10px;
+cursor:pointer;
+font-weight:600;
+transition:.2s;
+}
+
+button:hover{
+transform:translateY(-1px);
+}
+
+.note-box{
+margin-top:15px;
+overflow-x:auto;
+}
+
+#noteTable{
+width:100%;
+border-collapse:collapse;
+min-width:600px;
+}
+
+#noteTable th,
+#noteTable td{
+border:1px solid #dbe2ef;
+padding:10px;
+text-align:left;
+}
+
+#noteTable th{
+background:#2563eb;
+color:white;
+}
+
+#noteTable tr:nth-child(even){
+background:#f8fafc;
+}
+
+.note-delete{
+background:#ef4444;
+padding:7px 12px;
+}
+
+.task{
+background:#f8fafc;
+padding:12px;
+border-radius:10px;
+margin-top:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-left:5px solid #2563eb;
+gap:10px;
+}
+
+.task.done{
+opacity:.6;
+text-decoration:line-through;
+border-left-color:#22c55e;
+}
+
+.actions{
+display:flex;
+gap:5px;
+}
+
+.done-btn{
+background:#22c55e;
+}
+
+.delete-btn{
+background:#ef4444;
+}
+
+.empty{
+padding:15px;
+text-align:center;
+color:#888;
+}
+
+.footer{
+text-align:center;
+margin-top:20px;
+color:#666;
+font-size:14px;
+}
+
+@media(max-width:768px){
+
+.grid{
+grid-template-columns:1fr;
+}
+
+.header h1{
+font-size:24px;
+}
+
+button{
+width:100%;
+}
+
+.task{
+flex-direction:column;
+align-items:flex-start;
+}
+
+.actions{
+width:100%;
+display:flex;
+}
+
+.actions button{
+flex:1;
+}
+
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+<h1>📝 CT-EDU Notes & Tasks</h1>
+<p>Quản lý ghi chú và công việc hằng ngày</p>
+</div>
+
+<div class="grid">
+
+<!-- NOTES -->
+
+<div class="card">
+
+<h2>📒 Ghi chú</h2>
+
+<textarea
+id="notes"
+rows="5"
+placeholder="Nhập nội dung ghi chú..."></textarea>
+
+<button onclick="saveNotes()">
+Lưu ghi chú
+</button>
+
+<div class="note-box">
+
+<table id="noteTable">
+
+<thead>
+<tr>
+<th width="60">STT</th>
+<th width="180">Thời gian</th>
+<th>Nội dung</th>
+<th width="80">Xóa</th>
+</tr>
+</thead>
+
+<tbody id="noteBody"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<!-- TASK -->
+
+<div class="card">
+
+<h2>✅ Task công việc</h2>
+
+<input
+id="taskInput"
+placeholder="Nhập công việc..."
+onkeypress="if(event.key==='Enter') addTask()">
+
+<button onclick="addTask()">
+Thêm Task
+</button>
+
+<div id="taskList"></div>
+
+</div>
+
+</div>
+
+<div class="footer">
+CT-EDU Notes Manager © 2026
+</div>
+
+</div>
+
+<script>
+
+/* ===========================
+   NOTES
+=========================== */
+
+let notesData =
+JSON.parse(localStorage.getItem("notesData")) || [];
+
+function saveNotes(){
+
+const text =
+document.getElementById("notes").value.trim();
+
+if(text===""){
+alert("Vui lòng nhập ghi chú.");
+return;
+}
+
+const now = new Date();
+
+const time =
+now.toLocaleString("vi-VN");
+
+notesData.unshift({
+time:time,
+text:text
+});
+
+localStorage.setItem(
+"notesData",
+JSON.stringify(notesData)
+);
+
+document.getElementById("notes").value="";
+
+loadNotes();
+
+alert("Đã lưu ghi chú thành công.");
+}
+
+function loadNotes(){
+
+const body =
+document.getElementById("noteBody");
+
+body.innerHTML="";
+
+if(notesData.length===0){
+
+body.innerHTML=`
+<tr>
+<td colspan="4" class="empty">
+Chưa có ghi chú nào
+</td>
+</tr>
+`;
+
+return;
+}
+
+notesData.forEach((note,index)=>{
+
+body.innerHTML += `
+<tr>
+<td>${index+1}</td>
+<td>${note.time}</td>
+<td>${note.text}</td>
+<td>
+<button
+class="note-delete"
+onclick="deleteNote(${index})">
+✕
+</button>
+</td>
+</tr>
+`;
+
+});
+}
+
+function deleteNote(index){
+
+if(confirm("Bạn có muốn xóa ghi chú này?")){
+
+notesData.splice(index,1);
+
+localStorage.setItem(
+"notesData",
+JSON.stringify(notesData)
+);
+
+loadNotes();
+}
+}
+
+/* ===========================
+   TASKS
+=========================== */
+
+let tasks =
+JSON.parse(localStorage.getItem("tasks")) || [];
+
+function renderTasks(){
+
+const list =
+document.getElementById("taskList");
+
+list.innerHTML="";
+
+if(tasks.length===0){
+
+list.innerHTML=`
+<div class="empty">
+Chưa có task nào
+</div>
+`;
+
+return;
+}
+
+tasks.forEach((task,index)=>{
+
+list.innerHTML += `
+<div class="task ${task.done?'done':''}">
+
+<span>
+${index+1}. ${task.text}
+</span>
+
+<div class="actions">
+
+<button
+class="done-btn"
+onclick="toggleTask(${index})">
+✓
+</button>
+
+<button
+class="delete-btn"
+onclick="deleteTask(${index})">
+✕
+</button>
+
+</div>
+
+</div>
+`;
+
+});
+
+localStorage.setItem(
+"tasks",
+JSON.stringify(tasks)
+);
+}
+
+function addTask(){
+
+const input =
+document.getElementById("taskInput");
+
+const value =
+input.value.trim();
+
+if(value==="") return;
+
+tasks.unshift({
+text:value,
+done:false,
+time:new Date().toLocaleString("vi-VN")
+});
+
+input.value="";
+
+renderTasks();
+}
+
+function toggleTask(index){
+
+tasks[index].done =
+!tasks[index].done;
+
+renderTasks();
+}
+
+function deleteTask(index){
+
+if(confirm("Xóa task này?")){
+
+tasks.splice(index,1);
+
+renderTasks();
+}
+}
+
+/* ===========================
+   INIT
+=========================== */
+
+loadNotes();
+renderTasks();
+
+</script>
+
+</body>
+</html>
