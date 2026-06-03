@@ -270,16 +270,38 @@ CT-EDU Notes Manager © 2026
 
 </div>
 
-<script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+getDatabase,
+ref,
+push,
+set,
+onValue,
+remove,
+update
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyDtAU-Iqn-u39_mgkxRZ3fIF_Kyxqn-Gyg",
+authDomain: "csdl-bio.firebaseapp.com",
+databaseURL: "https://csdl-bio-default-rtdb.firebaseio.com",
+projectId: "csdl-bio",
+storageBucket: "csdl-bio.firebasestorage.app",
+messagingSenderId: "568258817515",
+appId: "1:568258817515:web:0cc4b4dd5d7b6ca0a63dae",
+measurementId: "G-6K801TQQT3"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 /* ===========================
    NOTES
 =========================== */
 
-let notesData =
-JSON.parse(localStorage.getItem("notesData")) || [];
-
-function saveNotes(){
+window.saveNotes = function(){
 
 const text =
 document.getElementById("notes").value.trim();
@@ -289,36 +311,24 @@ alert("Vui lòng nhập ghi chú.");
 return;
 }
 
-const now = new Date();
+const noteRef = push(ref(db,"notes"));
 
-const time =
-now.toLocaleString("vi-VN");
-
-notesData.unshift({
-time:time,
+set(noteRef,{
+time:new Date().toLocaleString("vi-VN"),
 text:text
 });
 
-localStorage.setItem(
-"notesData",
-JSON.stringify(notesData)
-);
-
 document.getElementById("notes").value="";
+};
 
-loadNotes();
-
-alert("Đã lưu ghi chú thành công.");
-}
-
-function loadNotes(){
+onValue(ref(db,"notes"),(snapshot)=>{
 
 const body =
 document.getElementById("noteBody");
 
 body.innerHTML="";
 
-if(notesData.length===0){
+if(!snapshot.exists()){
 
 body.innerHTML=`
 <tr>
@@ -331,7 +341,10 @@ Chưa có ghi chú nào
 return;
 }
 
-notesData.forEach((note,index)=>{
+const notes =
+Object.entries(snapshot.val()).reverse();
+
+notes.forEach(([id,note],index)=>{
 
 body.innerHTML += `
 <tr>
@@ -341,7 +354,7 @@ body.innerHTML += `
 <td>
 <button
 class="note-delete"
-onclick="deleteNote(${index})">
+onclick="deleteNote('${id}')">
 ✕
 </button>
 </td>
@@ -349,38 +362,53 @@ onclick="deleteNote(${index})">
 `;
 
 });
-}
 
-function deleteNote(index){
+});
+
+window.deleteNote = function(id){
 
 if(confirm("Bạn có muốn xóa ghi chú này?")){
 
-notesData.splice(index,1);
+remove(ref(db,"notes/"+id));
 
-localStorage.setItem(
-"notesData",
-JSON.stringify(notesData)
-);
+}
 
-loadNotes();
-}
-}
+};
 
 /* ===========================
    TASKS
 =========================== */
 
-let tasks =
-JSON.parse(localStorage.getItem("tasks")) || [];
+window.addTask = function(){
 
-function renderTasks(){
+const input =
+document.getElementById("taskInput");
+
+const value =
+input.value.trim();
+
+if(value==="") return;
+
+const taskRef =
+push(ref(db,"tasks"));
+
+set(taskRef,{
+text:value,
+done:false,
+time:new Date().toLocaleString("vi-VN")
+});
+
+input.value="";
+};
+
+onValue(ref(db,"tasks"),(snapshot)=>{
 
 const list =
 document.getElementById("taskList");
 
 list.innerHTML="";
 
-if(tasks.length===0){
+if(!snapshot.exists()){
 
 list.innerHTML=`
 <div class="empty">
@@ -391,7 +419,10 @@ Chưa có task nào
 return;
 }
 
-tasks.forEach((task,index)=>{
+const tasks =
+Object.entries(snapshot.val()).reverse();
+
+tasks.forEach(([id,task],index)=>{
 
 list.innerHTML += `
 <div class="task ${task.done?'done':''}">
@@ -404,13 +435,13 @@ ${index+1}. ${task.text}
 
 <button
 class="done-btn"
-onclick="toggleTask(${index})">
+onclick="toggleTask('${id}',${task.done})">
 ✓
 </button>
 
 <button
 class="delete-btn"
-onclick="deleteTask(${index})">
+onclick="deleteTask('${id}')">
 ✕
 </button>
 
@@ -421,57 +452,28 @@ onclick="deleteTask(${index})">
 
 });
 
-localStorage.setItem(
-"tasks",
-JSON.stringify(tasks)
-);
-}
-
-function addTask(){
-
-const input =
-document.getElementById("taskInput");
-
-const value =
-input.value.trim();
-
-if(value==="") return;
-
-tasks.unshift({
-text:value,
-done:false,
-time:new Date().toLocaleString("vi-VN")
 });
 
-input.value="";
+window.toggleTask = function(id,current){
 
-renderTasks();
+update(
+ref(db,"tasks/"+id),
+{
+done:!current
 }
+);
 
-function toggleTask(index){
+};
 
-tasks[index].done =
-!tasks[index].done;
-
-renderTasks();
-}
-
-function deleteTask(index){
+window.deleteTask = function(id){
 
 if(confirm("Xóa task này?")){
 
-tasks.splice(index,1);
+remove(ref(db,"tasks/"+id));
 
-renderTasks();
-}
 }
 
-/* ===========================
-   INIT
-=========================== */
-
-loadNotes();
-renderTasks();
+};
 
 </script>
 
